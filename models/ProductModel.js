@@ -14,6 +14,11 @@ const ProductSchema = new mongoose.Schema(
       type: Number,
       required: true,
     },
+    quantity: {
+      type: Number,
+      required: true,
+      default: 0,
+    },
     sales_count: {
       type: Number,
       default: 0,
@@ -28,6 +33,10 @@ const ProductSchema = new mongoose.Schema(
     },
     image: {
       type: String,
+      required: true,
+    },
+    year: {
+      type: Number,
       required: true,
     },
   },

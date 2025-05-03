@@ -1,5 +1,5 @@
 import mongoose from "mongoose";
-
-export const connect_db = () => {
-  return mongoose.connect("url");
+import { ENV_VARS } from "./env_var.js";
+export const connectToDB = async () => {
+  return mongoose.connect(ENV_VARS.MONGODB_URI);
 };

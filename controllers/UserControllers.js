@@ -14,6 +14,12 @@ export const register_user = async (req, res) => {
     return res.status(400).json({ error: "Email is already taken" });
   }
 
+  const UsernameExsits = await UserModel.findOne({ username: username });
+  if (UsernameExsits) {
+    console.log("username taken");
+    return res.status(400).json({ error: "Username Already Taken" });
+  }
+
   const salt = await bcrypt.genSalt(10);
   const hashed_password = await bcrypt.hash(password, salt);
 
@@ -22,7 +28,11 @@ export const register_user = async (req, res) => {
     password: hashed_password,
     email: email,
   });
-  return res.status(200).json({ token: create_token(user._id) });
+  return res.status(200).json({
+    token: create_token(user._id),
+    username: user.username,
+    email: user.email,
+  });
 };
 
 export const login_user = async (req, res) => {
@@ -41,5 +51,9 @@ export const login_user = async (req, res) => {
     return res.status(400).json({ error: "Invalid Credentials" });
   }
 
-  return res.status(200).json({ token: create_token(user._id) });
+  return res.status(200).json({
+    token: create_token(user._id),
+    username: user.username,
+    email: user.email,
+  });
 };

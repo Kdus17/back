@@ -28,7 +28,7 @@ export const getTrendingProducts = async (req, res) => {
 };
 
 export const getAllProducts = async (req, res) => {
-  const { categories, brands, year, minimum, maximum } = req.query;
+  const { categories, brands, year, year2, minimum, maximum } = req.query;
   console.log("This is the request ", req.query);
   console.log(minimum, maximum);
   const filter_options = {};
@@ -39,8 +39,11 @@ export const getAllProducts = async (req, res) => {
   if (brands) {
     filter_options.brand = brands.split(",");
   }
-  if (year) {
-    filter_options.year = year;
+  if (year && year2) {
+    filter_options.year = {
+      $gte: parseInt(year, 10),
+      $lte: parseInt(year2, 10),
+    };
   }
   if (minimum && maximum) {
     filter_options.price = {
@@ -53,6 +56,8 @@ export const getAllProducts = async (req, res) => {
     return res.status(404).json({ message: "No products found" });
   }
   res.status(200).json({ products: all_products });
+  console.log(filter_options.year);
+  console.log(filter_options);
 };
 
 export const getProductsByCategory = async (req, res) => {
@@ -71,7 +76,17 @@ export const getProductsByBrand = async (req, res) => {
 
 export const createProduct = async (req, res) => {
   const result = await cloudinary.uploader.upload(req.file.path);
-  const { product_name, year, brand, category, price, description } = req.body;
+  const {
+    product_name,
+    year,
+    brand,
+    quantity,
+    category,
+    price,
+    description,
+    seller,
+    seller_email,
+  } = req.body;
   fs.unlink(req.file.path, (err) => {
     if (err) {
       console.error("Failed to delete the file:", err);
@@ -83,10 +98,85 @@ export const createProduct = async (req, res) => {
     product_name,
     year,
     brand,
+    quantity,
     category,
     price,
     product_description: description,
     image: result.url,
+    seller,
+    seller_email,
   });
   return res.status(201).json({ message: "Product Added" });
+};
+
+export const getProductsBySeller = async (req, res) => {
+  try {
+    const { seller } = req.query;
+    const products = await ProductModel.find({ seller });
+    res.status(200).json({ products });
+  } catch (error) {
+    console.error("Error fetching seller products:", error);
+    res.status(500).json({ error: "Failed to fetch products" });
+  }
+};
+
+export const updateProduct = async (req, res) => {
+  const { id } = req.params;
+  const {
+    product_name,
+    year,
+    brand,
+    quantity,
+    category,
+    price,
+    description,
+    seller,
+    seller_email,
+  } = req.body;
+
+  try {
+    const updateData = {
+      product_name,
+      year,
+      brand,
+      quantity,
+      category,
+      price,
+      product_description: description,
+      seller,
+      seller_email,
+    };
+
+    // If a new image is uploaded, update the image URL
+    if (req.file) {
+      const result = await cloudinary.uploader.upload(req.file.path);
+      updateData.image = result.url;
+      // Delete the temporary file
+      fs.unlink(req.file.path, (err) => {
+        if (err) {
+          console.error("Failed to delete the file:", err);
+        } else {
+          console.log("Temporary file deleted:", req.file.path);
+        }
+      });
+    }
+
+    const updatedProduct = await ProductModel.findByIdAndUpdate(
+      id,
+      updateData,
+      { new: true, runValidators: true }
+    );
+
+    if (!updatedProduct) {
+      return res.status(404).json({ error: "Product not found" });
+    }
+
+    res.status(200).json({
+      message: "Product updated successfully",
+      product: updatedProduct,
+    });
+  } catch (error) {
+    console.error("Error updating product:", error);
+    res.status(500).json({ error: "Failed to update product" });
+  }
 };
